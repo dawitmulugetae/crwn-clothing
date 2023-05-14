@@ -6,7 +6,14 @@ import { getAuth,
          signInWithEmailAndPassword,
          onAuthStateChanged,
          signInWithPopup} from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc} from "firebase/firestore"
+import { getFirestore,
+         doc,
+         getDoc,
+         collection,
+         writeBatch,
+         query,
+         getDocs,
+         setDoc} from "firebase/firestore"
 
 
 const firebaseConfig = {
@@ -33,6 +40,33 @@ export const signInWithGooglePopup = () => signInWithPopup(auth, provider)
 
 const db = getFirestore();
 
+export const addCollectionAndDocument = async (collectionKey, objectsToAdd) => {
+    const collectionRef = collection(db, collectionKey);
+    const batch = writeBatch(db)
+
+    objectsToAdd.forEach((object) => {
+        const docRef = doc(collectionRef,object.title.toLowerCase());
+        batch.set(docRef,object)
+    })
+
+    await batch.commit();
+
+    console.log('done')
+}
+
+export const getCategoriesAndDocuments = async () => {
+    const collectionRef = collection(db, 'categories')
+    const q = query(collectionRef)
+
+    const querySnapshot = await getDocs(q);
+    const categoryMap = querySnapshot.docs.reduce((acc, docSnapshot) => {
+        const {title, items} = docSnapshot.data();
+        acc[title.toLowerCase()] = items;
+        return acc;
+    }, {})
+
+    return categoryMap;
+}
 export const createUserDocumentFromAuth = async (userAuth, additionalInformation = {}) => {
     if(!userAuth) return;
     const userDocRef = doc(db, 'users', userAuth.uid)
